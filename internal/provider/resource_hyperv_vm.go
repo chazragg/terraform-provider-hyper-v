@@ -146,7 +146,29 @@ func (r *VMResource) Update(_ context.Context, req resource.UpdateRequest, resp 
 
 }
 
-func (r *VMResource) Delete(_ context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *VMResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	tflog.Debug(ctx, "Custom Error: Hit the Delete setup")
+
+	var state VMResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	vm := hypervapi.VMModel{
+		VMId: state.VMId.String(),
+	}
+
+	err := r.client.DeleteVM(ctx, vm)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating order",
+			"Could not delete VM, unexpected error: "+err.Error(),
+		)
+		return
+	}
+	tflog.Debug(ctx, "Custom Error: Deleted VM")
 
 }
 

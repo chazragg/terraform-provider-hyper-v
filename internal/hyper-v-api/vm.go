@@ -73,3 +73,44 @@ func (c *Client) CreateVM(ctx context.Context, data VMModel) (*VMModel, error) {
 
 	return &vmResult, nil
 }
+
+func (c *Client) DeleteVM(ctx context.Context, data VMModel) error {
+	if err := c.Connect(); err != nil {
+		return fmt.Errorf("failed to connect to WinRM: %w", err)
+	}
+
+	if c.winrmClient == nil {
+		return fmt.Errorf("WinRM client is nil after connection")
+	}
+
+	log.Println("Created new Client")
+
+	// Render PowerShell script
+	script, err := renderTemplate("DeleteVirtualMachine.ps1.tmpl", data)
+	if err != nil {
+		log.Fatalf("Error Rendering tempalte: %v", err)
+		log.Println(script)
+		return fmt.Errorf("failed to render PowerShell script: %w", err)
+	}
+	log.Println("Rendered template")
+	log.Print(script.String())
+
+	// Run command on remote system using c.winrmClient
+	outWriter, errWrite, exitCode, err := runRemoteCommand(ctx, c.winrmClient, script.String())
+	if err != nil {
+		log.Fatalln(err)
+		log.Fatalln(errWrite)
+		return fmt.Errorf("failed to execute remote command: %w", err)
+	}
+	if errWrite != "" {
+		log.Fatalln(errWrite)
+		return fmt.Errorf("failed to execute remote command: %s", errWrite)
+	}
+	if exitCode != 0 {
+		log.Fatalf("Exit Code: exitCode")
+		return fmt.Errorf("script exited with code %d", exitCode)
+	}
+
+	log.Print(outWriter)
+	return nil
+}
