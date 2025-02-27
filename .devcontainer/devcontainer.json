@@ -1,21 +1,9 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/go-postgres
 {
-	"name": "Go & PostgreSQL",
-	"dockerComposeFile": "docker-compose.yml",
-	"service": "app",
+	"name": "Terraform-devcontainer",
+	"image": "ghcr.io/chazragg/go-devcontainer:latest",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-	"features": {
-		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
-		"ghcr.io/devcontainers/features/terraform:1": {},
-		"ghcr.io/azutake/devcontainer-features/go-packages-install:0": {
-			"PACKAGES": [
-				"github.com/muandane/goji@latest",
-				"github.com/goreleaser/goreleaser/v2@latest"
-			]
-		}
-	}
-
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 
