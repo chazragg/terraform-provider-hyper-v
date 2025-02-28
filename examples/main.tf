@@ -18,5 +18,11 @@ resource "hyperv_vm" "name" {
   generation = 2
   memory_startup = 536870912
   path = "D:\\vhd"
-  switch_name = "Default Switch"
+}
+
+resource "hyperv_vm" "NewVM" {
+  name = "New Virtual Machine"
+  generation = 2
+  memory_startup = 4294967296
+  path = "C:\\ProgramData\\Microsoft\\Windows\\Hyper-V"
 }
