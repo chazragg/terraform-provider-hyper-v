@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -25,9 +26,7 @@ type VMResourceModel struct {
 	Generation         types.Int64  `tfsdk:"generation"`
 	MemoryStartupBytes types.Int64  `tfsdk:"memory_startup"` // Adjusted from "memorystartup"
 	Path               types.String `tfsdk:"path"`
-	SwitchName         types.String `tfsdk:"switch_name"` // Adjusted from "switchname"
 	BootDevice         types.String `tfsdk:"boot_device"` // Adjusted from "bootdevice"
-	Prerelease         types.Bool   `tfsdk:"prerelease"`
 }
 
 func NewVMResource() resource.Resource {
@@ -68,17 +67,11 @@ func (r *VMResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp 
 				MarkdownDescription: "Path for storing VM files",
 				Optional:            true,
 			},
-			"switch_name": schema.StringAttribute{
-				MarkdownDescription: "Switch name for networking",
-				Required:            true,
-			},
 			"boot_device": schema.StringAttribute{
 				MarkdownDescription: "Boot device for the VM",
 				Optional:            true,
-			},
-			"prerelease": schema.BoolAttribute{
-				MarkdownDescription: "Enable prerelease ",
-				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(""),
 			},
 		},
 	}
@@ -100,9 +93,7 @@ func (r *VMResource) Create(ctx context.Context, req resource.CreateRequest, res
 		Generation:         int64(plan.Generation.ValueInt64()),
 		MemoryStartupBytes: plan.MemoryStartupBytes.ValueInt64(),
 		Path:               plan.Path.ValueString(),
-		SwitchName:         plan.SwitchName.ValueString(),
 		BootDevice:         plan.BootDevice.ValueString(),
-		Prerelease:         plan.Prerelease.ValueBool(),
 	}
 
 	// Create command
@@ -116,6 +107,7 @@ func (r *VMResource) Create(ctx context.Context, req resource.CreateRequest, res
 	tflog.Debug(ctx, "Custom Error: Created VM")
 
 	plan.VMId = types.StringValue(vmResults.VMId)
+	// plan.Path = types.StringValue(vmResults.Path)
 
 	diags = resp.State.Set(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -126,20 +118,50 @@ func (r *VMResource) Create(ctx context.Context, req resource.CreateRequest, res
 }
 
 func (r *VMResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	// tflog.Debug(ctx, "Hit the Read setup")
-	// var state VMResourceModel
+	tflog.Debug(ctx, "Hit the Read setup")
+	var state VMResourceModel
 
-	// diags := req.State.Get(ctx, &state)
-	// resp.Diagnostics.Append(diags...)
-	// if resp.Diagnostics.HasError() {
-	// 	return
-	// }
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 
-	// diags = resp.State.Set(ctx, vm)
-	// resp.Diagnostics.Append(diags...)
-	// if resp.Diagnostics.HasError() {
-	// 	return
-	// }
+	fmt.Println("Printing state path")
+	fmt.Println(state.Path.ValueString())
+
+	vm := hypervapi.VMModel{
+		VMId: state.VMId.ValueString(), // Convert types.String to string
+	}
+
+	vmResults, err := r.client.GetVM(ctx, vm)
+
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to fetch VM",
+			"An unexpected error occurred while fetching the VM state. "+
+				"Please report this issue to the provider developers.\n\n"+
+				"API Error: "+err.Error(),
+		)
+		return
+	}
+
+	// Convert the API response (VMModel) back to the Terraform state model (VMResourceModel)
+	newState := VMResourceModel{
+		VMId:               types.StringValue(vmResults.VMId),
+		Name:               types.StringValue(vmResults.Name),
+		Generation:         types.Int64Value(vmResults.Generation),
+		MemoryStartupBytes: types.Int64Value(vmResults.MemoryStartupBytes),
+		// TODO: Resolve path issues
+		Path:       types.StringValue(state.Path.ValueString()),
+		BootDevice: types.StringValue(vmResults.BootDevice),
+	}
+
+	fmt.Println("Printing State")
+	fmt.Println(state)
+
+	fmt.Println("Printing New State")
+	fmt.Println(newState)
+
+	// Save the updated state back to Terraform
+	resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
+
 }
 
 func (r *VMResource) Update(_ context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {

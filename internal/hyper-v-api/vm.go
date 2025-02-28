@@ -14,9 +14,7 @@ type VMModel struct {
 	Generation         int64  `json:"Generation,omitempty"`
 	MemoryStartupBytes int64  `json:"MemoryStartup,omitempty"`
 	Path               string `json:"Path,omitempty"`
-	SwitchName         string `json:"SwitchName,omitempty"`
 	BootDevice         string `json:"BootDevice,omitempty"`
-	Prerelease         bool   `json:"Prerelease,omitempty"`
 }
 
 func (c *Client) CreateVM(ctx context.Context, data VMModel) (*VMModel, error) {
@@ -113,4 +111,33 @@ func (c *Client) DeleteVM(ctx context.Context, data VMModel) error {
 
 	log.Print(outWriter)
 	return nil
+}
+
+func (c *Client) GetVM(ctx context.Context, data VMModel) (*VMModel, error) {
+	if err := c.Connect(); err != nil {
+		return nil, fmt.Errorf("failed to connect to WinRM: %w", err)
+	}
+
+	if c.winrmClient == nil {
+		return nil, fmt.Errorf("WinRM client is nil afetr connection")
+	}
+
+	log.Println("Created new client")
+
+	script, err := renderTemplate("GetVirtualMachine.ps1.tmpl", data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute remote command: %w", err)
+	}
+
+	outWriter, _, _, err := runRemoteCommand(ctx, c.winrmClient, script.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute remote command: %w", err)
+	}
+
+	// Parse command output to VMModel
+	var vmResult VMModel
+	if err := json.Unmarshal([]byte(outWriter), &vmResult); err != nil {
+		return nil, fmt.Errorf("failed to parse command output: %w", err)
+	}
+	return &vmResult, nil
 }
