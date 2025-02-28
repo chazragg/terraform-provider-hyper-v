@@ -3,5 +3,8 @@
 {
 	"name": "Terraform-devcontainer",
 	"image": "ghcr.io/chazragg/go-devcontainer:latest",
-	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"mounts": [
+  		"source=${localWorkspaceFolder}/.terraformrc,target=/home/vscode/.terraformrc,type=bind,consistency=cached"
+	]
 }
