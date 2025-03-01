@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 )
 
 type VMModel struct {
@@ -19,11 +18,6 @@ type VMModel struct {
 
 func (c *Client) CreateVM(ctx context.Context, data VMModel) (*VMModel, error) {
 
-	f, err := os.OpenFile("testlogfile", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-	defer f.Close()
 	// Ensure we have a connected WinRM client
 	if err := c.Connect(); err != nil {
 		return nil, fmt.Errorf("failed to connect to WinRM: %w", err)
