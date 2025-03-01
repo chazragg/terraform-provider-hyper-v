@@ -1,4 +1,4 @@
-New-VM -Name {{.Name}} -NoVHD {{ if .Path }}-Path "{{.Path}}" {{ end }}{{ if .MemoryStartupBytes }}-MemoryStartupBytes {{.MemoryStartupBytes}} {{ end }}{{ if .Generation }}-Generation {{.Generation}} {{ end }}{{ if .BootDevice }}-BootDevice {{.BootDevice}} {{ end }}{{ if .Prerelease }}-Prerelease {{ end }} | ConvertTo-Json
+New-VM -Name {{.Name}} -NoVHD {{ if .Path }}-Path "{{.Path}}" {{ end }}{{ if .MemoryStartupBytes }}-MemoryStartupBytes {{.MemoryStartupBytes}} {{ end }}{{ if .Generation }}-Generation {{.Generation}} {{ end }}{{ if .BootDevice }}-BootDevice {{.BootDevice}} {{ end }} -Force | ConvertTo-Json
 
 
 {{/* TODO: Make file more redable */}}
