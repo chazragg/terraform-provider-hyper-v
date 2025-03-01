@@ -17,14 +17,9 @@ type VMModel struct {
 }
 
 func (c *Client) CreateVM(ctx context.Context, data VMModel) (*VMModel, error) {
-	// Ensure we have a connected WinRM client
-	if err := c.Connect(); err != nil {
-		return nil, fmt.Errorf("failed to connect to WinRM: %w", err)
-	}
-
-	// Double-check that c.winrmClient is not nil after connection
-	if c.winrmClient == nil {
-		return nil, fmt.Errorf("WinRM client is nil after connection")
+	// Ensure the WinRM client is connected
+	if err := c.ensureConnected(); err != nil {
+		return nil, err
 	}
 
 	// Render PowerShell script
@@ -50,14 +45,9 @@ func (c *Client) CreateVM(ctx context.Context, data VMModel) (*VMModel, error) {
 }
 
 func (c *Client) DeleteVM(ctx context.Context, data VMModel) error {
-	// Ensure we have a connected WinRM client
-	if err := c.Connect(); err != nil {
-		return fmt.Errorf("failed to connect to WinRM: %w", err)
-	}
-
-	// Double-check that c.winrmClient is not nil after connection
-	if c.winrmClient == nil {
-		return fmt.Errorf("WinRM client is nil after connection")
+	// Ensure the WinRM client is connected
+	if err := c.ensureConnected(); err != nil {
+		return err
 	}
 
 	// Render PowerShell script
@@ -76,12 +66,9 @@ func (c *Client) DeleteVM(ctx context.Context, data VMModel) error {
 }
 
 func (c *Client) GetVM(ctx context.Context, data VMModel) (*VMModel, error) {
-	if err := c.Connect(); err != nil {
-		return nil, fmt.Errorf("failed to connect to WinRM: %w", err)
-	}
-
-	if c.winrmClient == nil {
-		return nil, fmt.Errorf("WinRM client is nil afetr connection")
+	// Ensure the WinRM client is connected
+	if err := c.ensureConnected(); err != nil {
+		return nil, err
 	}
 
 	script, err := renderTemplate("GetVirtualMachine.ps1.tmpl", data)
@@ -100,4 +87,16 @@ func (c *Client) GetVM(ctx context.Context, data VMModel) (*VMModel, error) {
 		return nil, fmt.Errorf("failed to parse command output: %w", err)
 	}
 	return &vmResult, nil
+}
+
+func (c *Client) ensureConnected() error {
+	if err := c.Connect(); err != nil {
+		return fmt.Errorf("failed to connect to WinRM: %w", err)
+	}
+
+	if c.winrmClient == nil {
+		return fmt.Errorf("WinRM client is nil after connection")
+	}
+
+	return nil
 }
