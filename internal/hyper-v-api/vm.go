@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 )
 
 type VMModel struct {
@@ -17,7 +18,6 @@ type VMModel struct {
 }
 
 func (c *Client) CreateVM(ctx context.Context, data VMModel) (*VMModel, error) {
-
 	// Ensure we have a connected WinRM client
 	if err := c.Connect(); err != nil {
 		return nil, fmt.Errorf("failed to connect to WinRM: %w", err)
@@ -32,34 +32,26 @@ func (c *Client) CreateVM(ctx context.Context, data VMModel) (*VMModel, error) {
 	// Render PowerShell script
 	script, err := renderTemplate("CreateVirtualMachine.ps1.tmpl", data)
 	if err != nil {
-		log.Fatalf("Error Rendering template: %v", err)
-		log.Println(script)
 		return nil, fmt.Errorf("failed to render PowerShell script: %w", err)
 	}
 	log.Println("Rendered template")
-	log.Print(script.String())
 
 	// Run command on remote system using c.winrmClient
 	outWriter, errWrite, exitCode, err := runRemoteCommand(ctx, c.winrmClient, script.String())
 	if err != nil {
-		log.Fatalln(err)
-		log.Fatalln(errWrite)
 		return nil, fmt.Errorf("failed to execute remote command: %w", err)
 	}
 	if errWrite != "" {
-		log.Fatalln(errWrite)
-		return nil, fmt.Errorf("failed to execute remote command: %s", errWrite)
+		return nil, fmt.Errorf("PowerShell script error: %s", errWrite)
 	}
 	if exitCode != 0 {
-		log.Fatalf("Exit Code: exitCode")
-		return nil, fmt.Errorf("script exited with code %d", exitCode)
+		return nil, fmt.Errorf("PowerShell script exited with code %d", exitCode)
 	}
 
 	// Parse command output to VMModel
 	var vmResult VMModel
+	outWriter = strings.TrimSpace(outWriter) // Remove trailing newlines
 	if err := json.Unmarshal([]byte(outWriter), &vmResult); err != nil {
-		log.Fatalln("Error Unmarshaling json")
-		log.Println(err)
 		return nil, fmt.Errorf("failed to parse command output: %w", err)
 	}
 
