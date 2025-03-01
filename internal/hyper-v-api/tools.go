@@ -24,21 +24,19 @@ func renderTemplate(templateFile string, data any) (*bytes.Buffer, error) {
 	return &script, nil
 }
 
-func runRemoteCommand(ctx context.Context, client *winrm.Client, script string) (string, string, int, error) {
-	log.Println("Executing Remote PowerShell command via WinRM...")
-
+func runRemoteCommand(ctx context.Context, client *winrm.Client, script string) (string, error) {
+	log.Println("Running Remote command")
 	stdout, stderr, exitCode, err := client.RunPSWithContext(ctx, script)
-
 	if err != nil {
-		log.Printf("Command execution failed: %v\n", err)
-		log.Printf("Exit Code: %d\nStderr: %s\n", exitCode, stderr)
-		return "", "", 0, fmt.Errorf("failed to run remote command: %w", err)
+		return "", fmt.Errorf("failed to run remote command: %w", err)
 	}
 
-	log.Printf("Command executed successfully with exit code %d\n", exitCode)
-	if stderr != "" {
-		log.Printf("Command stderr: %s\n", stderr)
+	if exitCode != 0 {
+		if stderr != "" {
+			return "", fmt.Errorf("PowerShell script error: %s", stderr)
+		}
+		return "", fmt.Errorf("PowerShell script exited with code %d", exitCode)
 	}
 
-	return stdout, stderr, exitCode, nil
+	return stdout, nil
 }
