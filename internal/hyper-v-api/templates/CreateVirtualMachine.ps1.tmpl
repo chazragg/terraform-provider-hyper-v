@@ -1,4 +1,20 @@
-New-VM -Name {{.Name}} -NoVHD {{ if .Path }}-Path "{{.Path}}" {{ end }}{{ if .MemoryStartupBytes }}-MemoryStartupBytes {{.MemoryStartupBytes}} {{ end }}{{ if .Generation }}-Generation {{.Generation}} {{ end }}{{ if .BootDevice }}-BootDevice {{.BootDevice}} {{ end }} -Force | ConvertTo-Json
+# Set Required parameters for VM creation
+$vmParams = @{
+    Name = {{.Name}}
+    NoVHD = $true
+    Force = $true
+}
+
+# Set optional parameters for VM creation
+{{ if .Path }}$vmParams["Path"] = "{{.Path}}"{{ end }}
+{{ if .MemoryStartupBytes }}$vmParams["MemoryStartupBytes"] = {{.MemoryStartupBytes}}{{ end }}
+{{ if .Generation }}$vmParams["Generation"] = {{.Generation}}{{ end }}
+{{ if .BootDevice }}$vmParams["BootDevice"] = "{{.BootDevice}}"{{ end }}
+
+
+# Combind all parameters 
+$vm = New-VM @vmParams
+$vm | ConvertTo-Json
 
 
 {{/* TODO: Make file more redable */}}
